@@ -26,6 +26,10 @@ export class AuthService {
           phoneNumber: body.phoneNumber,
           roleId: clientRoleId,
         },
+        omit: {
+          // password: true,
+          totpSecret: true,
+        },
       })
       return user
     } catch (error) {
