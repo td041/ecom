@@ -1,37 +1,28 @@
 import { ConflictException, Injectable } from '@nestjs/common'
-import { RegisterBodyDTO } from 'src/routes/auth/auth.dto'
+import { RegisterBodyType } from 'src/routes/auth/auth.model'
+import { AuthRepository } from 'src/routes/auth/auth.repo'
 import { RolesService } from 'src/routes/auth/roles.service'
 import { isUniqueConstraintError } from 'src/shared/helpers'
 import { HashingService } from 'src/shared/services/hashing.service'
-import { PrismaService } from 'src/shared/services/prisma.service'
-import { TokenService } from 'src/shared/services/token.service'
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly HashService: HashingService,
-    private readonly PrismaService: PrismaService,
-    private readonly TokenService: TokenService,
+    private readonly AuthRepository: AuthRepository,
     private readonly RolesService: RolesService,
   ) {}
-  async register(body: RegisterBodyDTO) {
+  async register(body: RegisterBodyType) {
     try {
       const clientRoleId = await this.RolesService.getClientRoleId()
       const hashedPassword = await this.HashService.hash(body.password)
-      const user = await this.PrismaService.user.create({
-        data: {
-          email: body.email,
-          password: hashedPassword,
-          name: body.name,
-          phoneNumber: body.phoneNumber,
-          roleId: clientRoleId,
-        },
-        omit: {
-          // password: true,
-          totpSecret: true,
-        },
+      return await this.AuthRepository.createUser({
+        email: body.email,
+        name: body.name,
+        phoneNumber: body.phoneNumber,
+        password: hashedPassword,
+        roleId: clientRoleId,
       })
-      return user
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new ConflictException('Email already exists')

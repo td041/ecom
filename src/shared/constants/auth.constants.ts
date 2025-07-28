@@ -11,6 +11,12 @@ export type AuthTypeType = (typeof AuthType)[keyof typeof AuthType]
 export const ConditionAuthGuard = {
   And: 'And',
   Or: 'Or',
-} as const 
+} as const
 
 export type ConditionAuthGuardType = (typeof ConditionAuthGuard)[keyof typeof ConditionAuthGuard]
+
+export const UserStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  BLOCKED: 'BLOCKED',
+} as const
