@@ -13,8 +13,8 @@ export class EmailService {
     const subject = 'Your OTP code'
     const aIndex = payload.email.indexOf('@')
     return this.resend.emails.send({
-      from: 'Ecommerce Nestjs<no-reply@resend.dev>',
-      to: ['trinhtrantrungduc@gmail.com'],
+      from: 'Ecommerce Nestjs<no-reply@trinhduc.io.vn>',
+      to: [payload.email],
       subject,
       react: OTPEmail({ otpCode: payload.code, title: subject, userEmail: payload.email.slice(0, aIndex) }),
     })
