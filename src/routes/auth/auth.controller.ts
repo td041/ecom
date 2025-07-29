@@ -9,6 +9,7 @@ import {
   // RefreshTokenResDTO,
   RegisterBodyDTO,
   RegisterResDTO,
+  SendOTPBodyDTO,
   // RegisterResDTO,
 } from 'src/routes/auth/auth.dto'
 import { AuthService } from 'src/routes/auth/auth.service'
@@ -19,10 +20,13 @@ export class AuthController {
   @ZodSerializerDto(RegisterResDTO)
   @Post('register')
   async register(@Body() body: RegisterBodyDTO) {
-    const result = await this.authService.register(body)
-    // return new RegisterResDTO(result)
-    return result
+    return await this.authService.register(body)
   }
+  @Post('otp')
+  async sendOTP(@Body() body: SendOTPBodyDTO) {
+    return await this.authService.sendOTP(body)
+  }
+
   // @Post('login')
   // async login(@Body() body: LoginBodyDTO) {
   //   return new LoginResDTO(await this.authService.login(body))
