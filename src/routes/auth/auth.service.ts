@@ -9,6 +9,7 @@ import { HashingService } from 'src/shared/services/hashing.service'
 import ms from 'ms'
 import envConfig from 'src/shared/config'
 import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
+import { EmailService } from 'src/shared/services/email.service'
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,6 +17,7 @@ export class AuthService {
     private readonly rolesService: RolesService,
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
+    private readonly emailService: EmailService,
   ) {}
   async register(body: RegisterBodyType) {
     try {
@@ -73,6 +75,17 @@ export class AuthService {
       expiresAt: addMilliseconds(new Date(), ms(envConfig.OTP_EXPIRES_IN)),
     })
     // 3. Gửi mã OTP
+    const { error } = await this.emailService.sendOTP({
+      email: body.email,
+      code,
+    })
+    if (error) {
+      console.log(error)
+      throw new UnprocessableEntityException({
+        message: 'Failed to send OTP',
+        path: 'code',
+      })
+    }
     return verificationCode
   }
   // async login(body: LoginBodyDTO) {
