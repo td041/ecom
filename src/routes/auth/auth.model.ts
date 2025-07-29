@@ -1,26 +1,6 @@
-import { password } from '@nest-zod/z'
-import { TypeOfVerificationCode, UserStatus } from 'src/shared/constants/auth.constants'
+import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
+import { UserSchema } from 'src/shared/models/shared-user.model'
 import z from 'zod'
-
-export const UserSchema = z.object({
-  id: z.number(),
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-  password: password().min(6).max(100),
-  phoneNumber: z.string().min(10).max(15),
-  avatar: z.string().nullable(),
-  totpSecret: z.string().nullable(),
-  status: z.enum([UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BLOCKED]),
-  roleId: z.number().positive(),
-  createdById: z.number().nullable(),
-  updatedById: z.number().nullable(),
-  deletedById: z.number().nullable(),
-  deletedAt: z.date().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-})
-
-export type UserType = z.infer<typeof UserSchema>
 
 export const RegisterBodySchema = UserSchema.pick({
   email: true,
@@ -56,7 +36,7 @@ export const VerificationCode = z.object({
   email: z.string().email(),
   code: z.string().length(6),
   type: z.enum([TypeOfVerificationCode.REGISTER, TypeOfVerificationCode.FORGOT_PASSWORD]),
-  expectedAt: z.date(),
+  expiresAt: z.date(),
   createdAt: z.date(),
 })
 
