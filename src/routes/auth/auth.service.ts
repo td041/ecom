@@ -8,6 +8,7 @@ import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import ms from 'ms'
 import envConfig from 'src/shared/config'
+import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,6 +19,24 @@ export class AuthService {
   ) {}
   async register(body: RegisterBodyType) {
     try {
+      const verificationCode = await this.authRepository.findUniqueVerificationCode({
+        email: body.email,
+        code: body.code,
+        type: TypeOfVerificationCode.REGISTER,
+      })
+      if (!verificationCode) {
+        throw new UnprocessableEntityException({
+          message: 'OTP is invalid',
+          path: 'code',
+        })
+      }
+      if (verificationCode.expiresAt < new Date()) {
+        throw new UnprocessableEntityException({
+          message: 'OTP has expired',
+          path: 'code',
+        })
+      }
+
       const clientRoleId = await this.rolesService.getClientRoleId()
       const hashedPassword = await this.hashService.hash(body.password)
       return await this.authRepository.createUser({
