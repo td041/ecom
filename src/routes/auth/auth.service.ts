@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, UnprocessableEntityException } from '@nestjs/common'
 import { addMilliseconds } from 'date-fns'
-import { RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model'
+import { LoginBodyType, RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
 import { RolesService } from 'src/routes/auth/roles.service'
 import { generateOTP, isUniqueConstraintError } from 'src/shared/helpers'
@@ -10,6 +10,8 @@ import ms from 'ms'
 import envConfig from 'src/shared/config'
 import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
 import { EmailService } from 'src/shared/services/email.service'
+import { TokenService } from 'src/shared/services/token.service'
+import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type'
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,6 +20,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
+    private readonly tokenService: TokenService,
   ) {}
   async register(body: RegisterBodyType) {
     try {
@@ -88,45 +91,60 @@ export class AuthService {
     }
     return verificationCode
   }
-  // async login(body: LoginBodyDTO) {
-  //   const user = await this.PrismaService.user.findUnique({
-  //     where: {
-  //       email: body.email,
-  //     },
-  //   })
-  //   if (!user) {
-  //     // không tìm thấy tài khoản
-  //     throw new UnauthorizedException('Account is not exist')
-  //   }
-  //   const isPasswordMatch = await this.HashService.compare(body.password, user.password)
-  //   if (!isPasswordMatch) {
-  //     // mật khẩu không đúng
-  //     throw new UnprocessableEntityException([
-  //       {
-  //         field: 'password',
-  //         error: 'Password is incorrect',
-  //       },
-  //     ])
-  //   }
-  //   const tokens = this.generateTokens({ userId: user.id })
-  //   return tokens
-  // }
+  async login(body: LoginBodyType & { userAgent: string; ip: string }) {
+    const user = await this.authRepository.findUniqueUserIncludeRole({
+      email: body.email,
+    })
+    if (!user) {
+      // không tìm thấy tài khoản
+      throw new UnprocessableEntityException({
+        message: 'Account is not exist',
+        path: 'email',
+      })
+    }
+    const isPasswordMatch = await this.hashService.compare(body.password, user.password)
+    if (!isPasswordMatch) {
+      // mật khẩu không đúng
+      throw new UnprocessableEntityException([
+        {
+          field: 'password',
+          error: 'Password is incorrect',
+        },
+      ])
+    }
+    const device = await this.authRepository.createDevice({
+      userId: user.id,
+      userAgent: body.userAgent,
+      ip: body.ip,
+    })
+    const tokens = this.generateTokens({
+      userId: user.id,
+      deviceId: device.id,
+      roleId: user.roleId,
+      roleName: user.role.name,
+    })
+    return tokens
+  }
 
-  // async generateTokens(payload: { userId: number }) {
-  //   const [accessToken, refreshToken] = await Promise.all([
-  //     this.TokenService.signAccessToken(payload),
-  //     this.TokenService.signRefreshToken(payload),
-  //   ])
-  //   const decodedRefreshToken = await this.TokenService.verifyRefreshToken(refreshToken)
-  //   await this.PrismaService.refreshToken.create({
-  //     data: {
-  //       token: refreshToken,
-  //       userId: decodedRefreshToken.userId,
-  //       expiresAt: new Date(decodedRefreshToken.exp * 1000),
-  //     },
-  //   })
-  //   return { accessToken, refreshToken }
-  // }
+  async generateTokens({ userId, deviceId, roleId, roleName }: AccessTokenPayloadCreate) {
+    const [accessToken, refreshToken] = await Promise.all([
+      this.tokenService.signAccessToken({
+        userId,
+        deviceId,
+        roleId,
+        roleName,
+      }),
+      this.tokenService.signRefreshToken({ userId }),
+    ])
+    const decodedRefreshToken = await this.tokenService.verifyRefreshToken(refreshToken)
+    await this.authRepository.createRefreshToken({
+      token: refreshToken,
+      userId,
+      expiresAt: new Date(decodedRefreshToken.exp * 1000),
+      deviceId,
+    })
+    return { accessToken, refreshToken }
+  }
   // async refreshToken(refreshToken: string) {
   //   try {
   //     // 1. Kiểm tra xem refresh token có hợp lệ không
