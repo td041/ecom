@@ -6,7 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { addMilliseconds } from 'date-fns'
-import { LoginBodyType, RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model'
+import { LoginBodyType, LogoutBodyType, RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
 import { RolesService } from 'src/routes/auth/roles.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
@@ -193,25 +193,26 @@ export class AuthService {
       throw new UnauthorizedException()
     }
   }
-  // async logout(refreshToken: string) {
-  //   try {
-  //     // 1. Kiểm tra xem refresh token có hợp lệ không
-  //     await this.TokenService.verifyRefreshToken(refreshToken)
-  //     // 2. Kiểm tra xem refresh token có tồn tại trong cơ sở dữ liệu không
-  //     await this.PrismaService.refreshToken.delete({
-  //       // check revoked token
-  //       // throw mã lỗi 'P2025'
-  //       where: {
-  //         token: refreshToken,
-  //       },
-  //     })
-
-  //     return { message: 'Logout successfully' }
-  //   } catch (error) {
-  //     if (isNotFoundPrismaError(error)) {
-  //       throw new UnauthorizedException('Refresh token has been revoked')
-  //     }
-  //     throw new UnauthorizedException()
-  //   }
-  // }
+  async logout(body: LogoutBodyType) {
+    try {
+      // 1. Kiểm tra xem refresh token có hợp lệ không
+      await this.tokenService.verifyRefreshToken(body.refreshToken)
+      // 2. Xóa refreshToken trong database
+      const { deviceId } = await this.authRepository.deleteRefreshToken({
+        token: body.refreshToken,
+        // check revoked token
+        // throw mã lỗi 'P2025'
+      })
+      // 3. Update device đã logout
+      await this.authRepository.deviceUpdate(deviceId, {
+        isActive: false,
+      })
+      return { message: 'Logout successfully' }
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw new UnauthorizedException('Refresh token has been revoked')
+      }
+      throw new UnauthorizedException()
+    }
+  }
 }
