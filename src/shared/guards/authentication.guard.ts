@@ -23,8 +23,10 @@ export class AuthenticationGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const authTypeValue = this.reflector.getAllAndOverride<AuthTypeDecoratorType | undefined>(AUTH_TYPE_KEY, [
       context.getHandler(),
+      // Lấy từ metadata gần cấp với handler nhất
       context.getClass(),
-    ]) ?? { authTypes: [AuthType.None], options: { condition: ConditionAuthGuard.And } }
+      // Lấy từ metadata gần cấp với class Controller nhất
+    ]) ?? { authTypes: [AuthType.Bearer], options: { condition: ConditionAuthGuard.And } }
     // console.log('authTypeValue', authTypeValue)
 
     const guards = authTypeValue.authTypes.map((authType) => this.authTypeGuardMap[authType])

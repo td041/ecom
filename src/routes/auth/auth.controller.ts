@@ -6,35 +6,34 @@ import {
   LogoutBodyDTO,
   RefreshTokenBodyDTO,
   RefreshTokenResDTO,
-  // LoginBodyDTO,
-  // LoginResDTO,
-  // LogoutBodyDTO,
-  // LogoutResDTO,
-  // RefreshTokenBodyDTO,
-  // RefreshTokenResDTO,
   RegisterBodyDTO,
   RegisterResDTO,
   SendOTPBodyDTO,
   // RegisterResDTO,
 } from 'src/routes/auth/auth.dto'
 import { AuthService } from 'src/routes/auth/auth.service'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { UserAgent } from 'src/shared/decorators/user-agent.detorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  @ZodSerializerDto(RegisterResDTO)
   @Post('register')
+  @IsPublic()
+  @ZodSerializerDto(RegisterResDTO)
   register(@Body() body: RegisterBodyDTO) {
     return this.authService.register(body)
   }
   @Post('otp')
+  @IsPublic()
+  @ZodSerializerDto(MessageResDTO)
   sendOTP(@Body() body: SendOTPBodyDTO) {
     return this.authService.sendOTP(body)
   }
-  @ZodSerializerDto(LoginResDTO)
   @Post('login')
+  @IsPublic()
+  @ZodSerializerDto(LoginResDTO)
   login(@Body() body: LoginBodyDTO, @UserAgent() userAgent: string, @Ip() ip: string) {
     return this.authService.login({
       ...body,
@@ -43,6 +42,7 @@ export class AuthController {
     })
   }
   @Post('refresh-token')
+  @IsPublic()
   @HttpCode(HttpStatus.OK)
   @ZodSerializerDto(RefreshTokenResDTO)
   refreshToken(@Body() body: RefreshTokenBodyDTO, @UserAgent() userAgent: string, @Ip() ip: string) {
