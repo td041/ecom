@@ -116,7 +116,7 @@ export class AuthService {
       // mật khẩu không đúng
       throw new UnprocessableEntityException([
         {
-          field: 'password',
+          path: 'password',
           error: 'Password is incorrect',
         },
       ])

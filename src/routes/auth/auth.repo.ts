@@ -1,11 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import {
-  DeviceType,
-  RefreshTokenType,
-  RegisterBodyType,
-  RoleType,
-  VerificationCodeType,
-} from 'src/routes/auth/auth.model'
+import { DeviceType, RefreshTokenType, RoleType, VerificationCodeType } from 'src/routes/auth/auth.model'
 import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
 import { UserType } from 'src/shared/models/shared-user.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
@@ -14,7 +8,7 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 export class AuthRepository {
   constructor(private readonly PrismaService: PrismaService) {}
   async createUser(
-    user: Omit<RegisterBodyType, 'confirm_password' | 'code'> & Pick<UserType, 'roleId'>,
+    user: Pick<UserType, 'roleId' | 'email' | 'password' | 'phoneNumber' | 'name'>,
   ): Promise<Omit<UserType, 'password' | 'totpSecret'>> {
     return this.PrismaService.user.create({
       data: user,
@@ -24,6 +18,18 @@ export class AuthRepository {
       },
     })
   }
+  async createUserIncludeRole(
+    user: Pick<UserType, 'roleId' | 'email' | 'password' | 'phoneNumber' | 'name' | 'avatar'>,
+  ): Promise<UserType & { role: RoleType }> {
+    return this.PrismaService.user.create({
+      data: user,
+
+      include: {
+        role: true,
+      },
+    })
+  }
+
   async createVerificationCode(
     payload: Pick<VerificationCodeType, 'email' | 'type' | 'code' | 'expiresAt'>,
   ): Promise<VerificationCodeType> {
