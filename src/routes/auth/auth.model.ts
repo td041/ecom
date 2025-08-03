@@ -32,7 +32,12 @@ export const VerificationCodeSchema = z.object({
   id: z.number(),
   email: z.string().email(),
   code: z.string().length(6),
-  type: z.enum([TypeOfVerificationCode.REGISTER, TypeOfVerificationCode.FORGOT_PASSWORD]),
+  type: z.enum([
+    TypeOfVerificationCode.REGISTER,
+    TypeOfVerificationCode.FORGOT_PASSWORD,
+    TypeOfVerificationCode.LOGIN,
+    TypeOfVerificationCode.DISABLE_2FA,
+  ]),
   expiresAt: z.date(),
   createdAt: z.date(),
 })
@@ -47,7 +52,9 @@ export const SendOTPBodySchema = z
 export const LoginBodySchema = UserSchema.pick({
   email: true,
   password: true,
-}).strict()
+})
+  .extend({ totpCode: z.string().length(6).optional(), code: z.string().length(6).optional() })
+  .strict()
 
 export const LoginResSchema = z.object({
   accessToken: z.string(),
@@ -112,6 +119,31 @@ export const ForgotPasswordBodySchema = z
     }
   })
 
+export const DisableTwoFactorBodySchema = z
+  .object({
+    totpCode: z.string().length(6).optional(),
+    code: z.string().length(6).optional(),
+  })
+  .superRefine(({ totpCode, code }, ctx) => {
+    // nếu cả 2 đều không được cung cấp hoặc cả 2 đều được cung cấp thì báo lỗi
+    if ((totpCode !== undefined) === (code !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Either totpCode or code must be provided, but not both',
+        path: ['totpCode', 'code'],
+      })
+      ctx.addIssue({
+        code: 'custom',
+        path: ['code'],
+      })
+    }
+  })
+
+export const TwoFactorSetupResSchema = z.object({
+  secret: z.string(),
+  url: z.string().url(),
+})
+
 export const LogoutBodySchema = RefreshTokenBodySchema
 export const GetAuthorizationUrlSchema = z.object({ url: z.string().url() })
 
@@ -130,3 +162,5 @@ export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>
 export type LogoutBodyType = z.infer<typeof LogoutBodySchema>
 export type DeviceType = z.infer<typeof DeviceSchema>
 export type RoleType = z.infer<typeof RoleSchema>
+export type DisableTwoFactorBodyType = z.infer<typeof DisableTwoFactorBodySchema>
+export type TwoFactorSetupResType = z.infer<typeof TwoFactorSetupResSchema>
