@@ -82,6 +82,7 @@ export class AuthController {
   @Get('google/callback')
   @IsPublic()
   async googleCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
+    // code: authorization code là mã ủy quyền tạm thời mà Google trả về sau khi người dùng đăng nhập thành công
     try {
       const data = await this.googleService.googleCallback({
         code,

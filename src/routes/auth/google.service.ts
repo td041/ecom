@@ -53,6 +53,7 @@ export class GoogleService {
       }
       //   2. Dùng code để lấy token
       const { tokens } = await this.oauth2Client.getToken(code)
+      console.log('tokens:', tokens);
       this.oauth2Client.setCredentials(tokens)
       //   3. Lấy thông tin người dùng từ token
       const oauth2 = google.oauth2({
@@ -67,7 +68,7 @@ export class GoogleService {
       //   nếu không có user tức là tài khoản google này là người mới không có dữ liệu trên hệ thống database của bạn cần phải tạo mới
       if (!user) {
         const clientRoleId = await this.rolesService.getClientRoleId()
-        console.log(clientRoleId)
+        // console.log(clientRoleId)
         const hashedPassword = await this.hashingService.hash(uuidv4())
         user = await this.authRepository.createUserIncludeRole({
           email: data.email,
