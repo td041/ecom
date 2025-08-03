@@ -141,7 +141,7 @@ export const DisableTwoFactorBodySchema = z
 
 export const TwoFactorSetupResSchema = z.object({
   secret: z.string(),
-  url: z.string().url(),
+  uri: z.string().url(),
 })
 
 export const LogoutBodySchema = RefreshTokenBodySchema

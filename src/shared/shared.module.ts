@@ -9,8 +9,16 @@ import { APP_GUARD } from '@nestjs/core'
 import { AuthenticationGuard } from 'src/shared/guards/authentication.guard'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { EmailService } from 'src/shared/services/email.service'
+import { TwoFactorService } from 'src/shared/services/2fa.service'
 
-const sharedService = [PrismaService, HashingService, TokenService, SharedUserRepository, EmailService]
+const sharedService = [
+  PrismaService,
+  HashingService,
+  TokenService,
+  SharedUserRepository,
+  EmailService,
+  TwoFactorService,
+]
 
 @Global()
 // Giúp chia sẻ provider (service...) trên toàn ứng dụng mà không cần imports module đó ở từng module con.
