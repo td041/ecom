@@ -94,6 +94,24 @@ export const GoogleAuthStateSchema = z.object({
   userAgent: z.string(),
   ip: z.string(),
 })
+
+export const ForgotPasswordBodySchema = z
+  .object({
+    email: z.string().email(),
+    code: z.string().length(6),
+    newPassword: z.string().min(6).max(100),
+    confirmNewPassword: z.string().min(6).max(100),
+  })
+  .superRefine(({ newPassword, confirmNewPassword }, ctx) => {
+    if (newPassword !== confirmNewPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'New password and confirm new password must match',
+        path: ['confirmNewPassword'],
+      })
+    }
+  })
+
 export const LogoutBodySchema = RefreshTokenBodySchema
 export const GetAuthorizationUrlSchema = z.object({ url: z.string().url() })
 
@@ -108,6 +126,7 @@ export type RefreshTokenResType = z.infer<typeof RefreshTokenResSchema>
 export type RefreshTokenType = z.infer<typeof RefreshTokenSchema>
 export type GoogleAuthStateType = z.infer<typeof GoogleAuthStateSchema>
 export type GetAuthorizationUrlType = z.infer<typeof GetAuthorizationUrlSchema>
+export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>
 export type LogoutBodyType = z.infer<typeof LogoutBodySchema>
 export type DeviceType = z.infer<typeof DeviceSchema>
 export type RoleType = z.infer<typeof RoleSchema>

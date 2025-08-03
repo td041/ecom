@@ -6,7 +6,13 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common'
 import { addMilliseconds } from 'date-fns'
-import { LoginBodyType, LogoutBodyType, RegisterBodyType, SendOTPBodyType } from 'src/routes/auth/auth.model'
+import {
+  ForgotPasswordBodyType,
+  LoginBodyType,
+  LogoutBodyType,
+  RegisterBodyType,
+  SendOTPBodyType,
+} from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
 import { RolesService } from 'src/routes/auth/roles.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
@@ -14,11 +20,17 @@ import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import ms from 'ms'
 import envConfig from 'src/shared/config'
-import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
+import { TypeOfVerificationCode, TypeOfVerificationCodeType } from 'src/shared/constants/auth.constants'
 import { EmailService } from 'src/shared/services/email.service'
 import { TokenService } from 'src/shared/services/token.service'
 import { AccessTokenPayloadCreate } from 'src/shared/types/jwt.type'
 import { RefreshTokenBodyDTO } from 'src/routes/auth/auth.dto'
+import {
+  EmailAlreadyExistsException,
+  EmailNotFoundException,
+  InvalidOTPException,
+  OTPExpiredException,
+} from 'src/routes/auth/error.model'
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,25 +41,36 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
   ) {}
+  async validateVerificationCode({
+    email,
+    code,
+    type,
+  }: {
+    email: string
+    code: string
+    type: TypeOfVerificationCodeType
+  }) {
+    console.log(email, code, type)
+    const verificationCode = await this.authRepository.findUniqueVerificationCode({
+      email,
+      code,
+      type,
+    })
+    if (!verificationCode) {
+      throw InvalidOTPException
+    }
+    if (verificationCode.expiresAt < new Date()) {
+      throw OTPExpiredException
+    }
+    return verificationCode
+  }
   async register(body: RegisterBodyType) {
     try {
-      const verificationCode = await this.authRepository.findUniqueVerificationCode({
+      await this.validateVerificationCode({
         email: body.email,
         code: body.code,
         type: TypeOfVerificationCode.REGISTER,
       })
-      if (!verificationCode) {
-        throw new UnprocessableEntityException({
-          message: 'OTP is invalid',
-          path: 'code',
-        })
-      }
-      if (verificationCode.expiresAt < new Date()) {
-        throw new UnprocessableEntityException({
-          message: 'OTP has expired',
-          path: 'code',
-        })
-      }
 
       const clientRoleId = await this.rolesService.getClientRoleId()
       const hashedPassword = await this.hashService.hash(body.password)
@@ -70,11 +93,11 @@ export class AuthService {
     const user = await this.sharedUserRepository.findUnique({
       email: body.email,
     })
-    if (user) {
-      throw new UnprocessableEntityException({
-        message: 'Email already exists',
-        path: 'email',
-      })
+    if (body.type === TypeOfVerificationCode.REGISTER && user) {
+      throw EmailAlreadyExistsException
+    }
+    if (body.type === TypeOfVerificationCode.FORGOT_PASSWORD && !user) {
+      throw EmailNotFoundException
     }
     // 2. Tạo mã OTP
     const code = generateOTP()
@@ -215,6 +238,38 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token has been revoked')
       }
       throw new UnauthorizedException()
+    }
+  }
+
+  async forgotPassword(body: ForgotPasswordBodyType) {
+    const { email, code, newPassword } = body
+    // 1. Kiểm tra email có tồn tại trong database hay không
+    const user = await this.sharedUserRepository.findUnique({ email })
+    if (!user) {
+      throw EmailNotFoundException
+    }
+    // 2. Kiểm tra mã OTP có hợp lệ không
+    await this.validateVerificationCode({
+      email,
+      code,
+      type: TypeOfVerificationCode.FORGOT_PASSWORD,
+    })
+    // 3. Cập nhật mật khẩu mới và xóa mã OTP
+    const hashedNewPassword = await this.hashService.hash(newPassword)
+    const $user = this.authRepository.updateUser(
+      {
+        email,
+      },
+      { password: hashedNewPassword },
+    )
+    const $deletedVerificationCode = this.authRepository.deleteVerificationCode({
+      email,
+      code,
+      type: TypeOfVerificationCode.FORGOT_PASSWORD,
+    })
+    await Promise.all([$user, $deletedVerificationCode])
+    return {
+      message: 'Password has been reset successfully.',
     }
   }
 }

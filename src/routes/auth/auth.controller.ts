@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Ip, Post, Query, Res } fro
 import { Response } from 'express'
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
+  ForgotPasswordBodyDTO,
   GetAuthorizationUrlDTO,
   LoginBodyDTO,
   LoginResDTO,
@@ -79,6 +80,7 @@ export class AuthController {
       ip,
     })
   }
+
   @Get('google/callback')
   @IsPublic()
   async googleCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
@@ -95,5 +97,12 @@ export class AuthController {
       const message = error instanceof Error ? error.message : 'An error occurred during Google authentication.'
       return res.redirect(`${envConfig.GOOGLE_CLIENT_REDIRECT_URI}?errorMessage=${message}`)
     }
+  }
+
+  @Post('forgot-password')
+  @IsPublic()
+  @ZodSerializerDto(MessageResDTO)
+  forgotPassword(@Body() body: ForgotPasswordBodyDTO) {
+    return this.authService.forgotPassword(body)
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { DeviceType, RefreshTokenType, RoleType, VerificationCodeType } from 'src/routes/auth/auth.model'
-import { TypeOfVerificationCode } from 'src/shared/constants/auth.constants'
+import { TypeOfVerificationCodeType } from 'src/shared/constants/auth.constants'
 import { UserType } from 'src/shared/models/shared-user.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
@@ -40,13 +40,14 @@ export class AuthRepository {
       create: payload,
       update: {
         code: payload.code,
+        type: payload.type,
         createdAt: new Date(),
         expiresAt: payload.expiresAt,
       },
     })
   }
   async findUniqueVerificationCode(
-    uniqueValue: { email: string } | { id: number } | { email: string; code: string; type: TypeOfVerificationCode },
+    uniqueValue: { email: string } | { id: number } | { email: string; code: string; type: TypeOfVerificationCodeType },
   ): Promise<VerificationCodeType | null> {
     return this.PrismaService.verificationCode.findUnique({
       where: uniqueValue,
@@ -100,5 +101,16 @@ export class AuthRepository {
       },
       data,
     })
+  }
+  async updateUser(where: { id: number } | { email: string }, data: Partial<Omit<UserType, 'id'>>): Promise<UserType> {
+    return await this.PrismaService.user.update({
+      where,
+      data,
+    })
+  }
+  async deleteVerificationCode(
+    uniqueValue: { email: string } | { id: number } | { email: string; code: string; type: TypeOfVerificationCodeType },
+  ): Promise<VerificationCodeType> {
+    return this.PrismaService.verificationCode.delete({ where: uniqueValue })
   }
 }
