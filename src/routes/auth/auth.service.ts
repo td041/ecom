@@ -65,22 +65,31 @@ export class AuthService {
     return verificationCode
   }
   async register(body: RegisterBodyType) {
+    const { email, code, name, phoneNumber } = body
     try {
       await this.validateVerificationCode({
-        email: body.email,
-        code: body.code,
+        email,
+        code,
         type: TypeOfVerificationCode.REGISTER,
       })
 
       const clientRoleId = await this.rolesService.getClientRoleId()
       const hashedPassword = await this.hashService.hash(body.password)
-      return await this.authRepository.createUser({
-        email: body.email,
-        name: body.name,
-        phoneNumber: body.phoneNumber,
-        password: hashedPassword,
-        roleId: clientRoleId,
-      })
+      const [user] = await Promise.all([
+        this.authRepository.createUser({
+          email,
+          name,
+          phoneNumber,
+          password: hashedPassword,
+          roleId: clientRoleId,
+        }),
+        this.authRepository.deleteVerificationCode({
+          email,
+          code,
+          type: TypeOfVerificationCode.REGISTER,
+        }),
+      ])
+      return user
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new ConflictException('Email already exists')

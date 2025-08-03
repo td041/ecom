@@ -36,14 +36,13 @@ export class AuthRepository {
     return this.PrismaService.verificationCode.upsert({
       where: {
         email: payload.email,
+        type: payload.type,
       },
-      create: payload,
       update: {
         code: payload.code,
-        type: payload.type,
-        createdAt: new Date(),
         expiresAt: payload.expiresAt,
       },
+      create: payload,
     })
   }
   async findUniqueVerificationCode(
