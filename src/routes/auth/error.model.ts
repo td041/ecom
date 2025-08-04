@@ -5,6 +5,11 @@ export const InvalidOTPException = new UnprocessableEntityException({
   path: 'code',
 })
 
+export const InvalidTOTPException = new UnprocessableEntityException({
+  message: 'Error.InvalidTOTPCode',
+  path: 'totpCode',
+})
+
 export const OTPExpiredException = new UnprocessableEntityException({
   message: 'Error.OTPExpired',
   path: 'code',

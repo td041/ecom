@@ -45,7 +45,12 @@ export const VerificationCodeSchema = z.object({
 export const SendOTPBodySchema = z
   .object({
     email: z.string().email(),
-    type: z.enum([TypeOfVerificationCode.REGISTER, TypeOfVerificationCode.FORGOT_PASSWORD]),
+    type: z.enum([
+      TypeOfVerificationCode.REGISTER,
+      TypeOfVerificationCode.FORGOT_PASSWORD,
+      TypeOfVerificationCode.LOGIN,
+      TypeOfVerificationCode.DISABLE_2FA,
+    ]),
   })
   .strict()
 
@@ -55,6 +60,22 @@ export const LoginBodySchema = UserSchema.pick({
 })
   .extend({ totpCode: z.string().length(6).optional(), code: z.string().length(6).optional() })
   .strict()
+  .superRefine(({ totpCode, code }, ctx) => {
+    // nếu cả 2 đều không được cung cấp hoặc cả 2 đều được cung cấp thì báo lỗi
+    const message = 'Only one of 2FA code or OTP code should be provided, not both.'
+    if (totpCode !== undefined && code !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message,
+        path: ['totpCode'],
+      })
+      ctx.addIssue({
+        code: 'custom',
+        message,
+        path: ['code'],
+      })
+    }
+  })
 
 export const LoginResSchema = z.object({
   accessToken: z.string(),
@@ -126,14 +147,16 @@ export const DisableTwoFactorBodySchema = z
   })
   .superRefine(({ totpCode, code }, ctx) => {
     // nếu cả 2 đều không được cung cấp hoặc cả 2 đều được cung cấp thì báo lỗi
-    if ((totpCode !== undefined) === (code !== undefined)) {
+    const message = 'Either totpCode or code must be provided, but not both.'
+    if (totpCode !== undefined && code !== undefined) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Either totpCode or code must be provided, but not both',
-        path: ['totpCode', 'code'],
+        message,
+        path: ['totpCode'],
       })
       ctx.addIssue({
         code: 'custom',
+        message,
         path: ['code'],
       })
     }
