@@ -31,7 +31,7 @@ const sharedService = [
       provide: APP_GUARD,
       useClass: AuthenticationGuard,
     },
-    // khai báo AuthenticationGuard là guard toàn cục để
+    // khai báo AuthenticationGuard là guard toàn cục để 
   ],
   exports: sharedService,
   imports: [JwtModule],
