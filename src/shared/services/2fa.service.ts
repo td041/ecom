@@ -30,11 +30,3 @@ export class TwoFactorService {
     return delta !== null
   }
 }
-
-const twoFactorService = new TwoFactorService()
-const test = twoFactorService.verifyTOTP({
-  email: 'trinhtrantrungduc@gmail.com',
-  token: '544713',
-  secret: 'HMLELA4P6BZLEG5AOECGGME27WCY4BBT',
-})
-console.log(test)
