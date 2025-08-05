@@ -71,7 +71,7 @@ export class AuthController {
 
   @Post('logout')
   @ZodSerializerDto(MessageResDTO)
-  async logout(@Body() body: LogoutBodyDTO) {
+  logout(@Body() body: LogoutBodyDTO) {
     return this.authService.logout(body)
   }
 
