@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "init-seed-data": "ts-node initialScript",
+    "role": "ts-node initialScript/roles-init.ts",
+    "permissions": "ts-node initialScript/create-permissions-init.ts",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
