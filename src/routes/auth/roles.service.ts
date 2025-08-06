@@ -12,7 +12,7 @@ export class RolesService {
       return this.clientRoleId
     }
     const role: RoleType = await this.prismaService.$queryRaw`
-      SELECT * from Role WHERE name = ${RoleName.Client} AND "deletedAt" IS NULL LIMIT 1;
+      SELECT * from "Role" WHERE name = ${RoleName.Client} AND "deletedAt" IS NULL LIMIT 1;
     `.then((res: RoleType[]) => {
       if (res.length === 0) {
         throw new Error('Client role not found')
