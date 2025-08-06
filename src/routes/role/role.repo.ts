@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common'
-import { RoleType } from 'src/routes/auth/auth.model'
 import {
   CreateRoleBodyType,
   GetRolesQueryType,
   GetRolesResType,
+  RoleType,
   RoleWithPermissionsType,
   UpdateRoleBodyType,
 } from 'src/routes/role/role.model'

@@ -1,5 +1,5 @@
-import { RoleSchema } from 'src/routes/auth/auth.model'
-import { PermissionSchema } from 'src/routes/permission/permission.model'
+import { PermissionSchema } from 'src/shared/models/shared-permission.model'
+import { RoleSchema } from 'src/shared/models/shared-role.model'
 import { z } from 'zod'
 
 export const RoleWithPermissionsSchema = RoleSchema.extend({
@@ -55,3 +55,4 @@ export type CreateRoleResType = z.infer<typeof CreateRoleResSchema>
 export type CreateRoleBodyType = z.infer<typeof CreateRoleBodySchema>
 export type GetRoleParamsType = z.infer<typeof GetRoleParamsSchema>
 export type UpdateRoleBodyType = z.infer<typeof UpdateRoleBodySchema>
+export type RoleType = z.infer<typeof RoleSchema>
