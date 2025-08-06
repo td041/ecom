@@ -18,6 +18,13 @@ export class AccessTokenGuard implements CanActivate {
     await this.validateUserPermission(decodedAccessToken, request)
     return true
   }
+  private extractAccessTokenFromHeader(request: Request): string {
+    const accessToken = request.headers.authorization?.split(' ')[1]
+    if (!accessToken) {
+      throw new UnauthorizedException('Error.MissingAccessToken')
+    }
+    return accessToken
+  }
   private async extractAndValidateToken(request: Request): Promise<AccessTokenPayload> {
     const accessToken = this.extractAccessTokenFromHeader(request)
     try {
@@ -27,13 +34,6 @@ export class AccessTokenGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Error.InvalidAccessToken')
     }
-  }
-  private extractAccessTokenFromHeader(request: Request): string {
-    const accessToken = request.headers.authorization?.split(' ')[1]
-    if (!accessToken) {
-      throw new UnauthorizedException('Error.MissingAccessToken')
-    }
-    return accessToken
   }
   private async validateUserPermission(decodedAccessToken: AccessTokenPayload, request: Request): Promise<void> {
     const roleId: number = decodedAccessToken.roleId
@@ -61,7 +61,7 @@ export class AccessTokenGuard implements CanActivate {
     console.log(role.permissions)
     // const canAccess = role.permissions.some((permission) => permission.path === path && permission.method === method)
     const canAccess = role.permissions.length > 0
-    console.log(canAccess)
+    console.log('canAccess', canAccess)
     if (!canAccess) {
       throw new ForbiddenException()
     }
