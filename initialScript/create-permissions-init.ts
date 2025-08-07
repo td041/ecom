@@ -16,19 +16,23 @@ async function bootstrap() {
     },
   })
 
-  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string }[] = router.stack
-    .map((layer) => {
-      if (layer.route) {
-        const path = layer.route?.path
-        const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
-        return {
-          path,
-          method,
-          name: method + ' ' + path,
+  const availableRoutes: { path: string; method: keyof typeof HTTPMethod; name: string; module: string }[] =
+    router.stack
+      .map((layer) => {
+        if (layer.route) {
+          const path = layer.route?.path
+          const method = String(layer.route?.stack[0].method).toUpperCase() as keyof typeof HTTPMethod
+          const module = String(path.split('/')[1]).toUpperCase()
+
+          return {
+            path,
+            method,
+            name: method + ' ' + path,
+            module,
+          }
         }
-      }
-    })
-    .filter((item) => item !== undefined)
+      })
+      .filter((item) => item !== undefined)
   const permissionInDbMap: Record<string, (typeof permissionInDb)[0]> = permissionInDb.reduce((acc, item) => {
     acc[`${item.method}-${item.path}`] = item
     return acc

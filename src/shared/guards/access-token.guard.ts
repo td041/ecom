@@ -36,6 +36,7 @@ export class AccessTokenGuard implements CanActivate {
     }
   }
   private async validateUserPermission(decodedAccessToken: AccessTokenPayload, request: Request): Promise<void> {
+    // kiểm tra quyền của user có thể truy cập vào route này không
     const roleId: number = decodedAccessToken.roleId
     const path: string = request.route.path
     const method = request.method as keyof typeof HTTPMethod
