@@ -3,7 +3,7 @@ import { InvalidPasswordException, NotFoundRecordException } from 'src/shared/er
 import { ChangePasswordBodyType, UpdateMeBodyType } from './profile.model'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
-import { isUniqueConstraintError } from 'src/shared/helpers'
+import { isUniqueConstraintPrismaError } from 'src/shared/helpers'
 
 @Injectable()
 export class ProfileService {
@@ -35,7 +35,7 @@ export class ProfileService {
         },
       )
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isUniqueConstraintPrismaError(error)) {
         throw NotFoundRecordException
       }
       throw error
@@ -69,7 +69,7 @@ export class ProfileService {
         message: 'Password changed successfully',
       }
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isUniqueConstraintPrismaError(error)) {
         throw NotFoundRecordException
       }
       throw error

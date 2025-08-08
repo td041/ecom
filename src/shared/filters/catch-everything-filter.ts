@@ -1,6 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common'
 import { HttpAdapterHost } from '@nestjs/core'
-import { isUniqueConstraintError } from 'src/shared/helpers'
+import { isUniqueConstraintPrismaError } from 'src/shared/helpers'
 
 @Catch()
 export class CatchEverythingFilter implements ExceptionFilter {
@@ -15,7 +15,7 @@ export class CatchEverythingFilter implements ExceptionFilter {
 
     let httpStatus = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
     let message = exception instanceof HttpException ? exception.getResponse() : 'Internal Server Error'
-    if (isUniqueConstraintError(exception)) {
+    if (isUniqueConstraintPrismaError(exception)) {
       httpStatus = HttpStatus.CONFLICT
       message = 'Record already exists'
     }

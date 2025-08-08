@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { LanguageRepo } from 'src/routes/language/language.repo'
 import { CreateLanguageBodyType, UpdateLanguageBodyType } from 'src/routes/language/language.model'
-import { isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
+import { isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helpers'
 import { LanguageAlreadyExistsException } from 'src/routes/language/language.error'
 import { NotFoundRecordException } from 'src/shared/error'
 
@@ -32,7 +32,7 @@ export class LanguageService {
         data,
       })
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isUniqueConstraintPrismaError(error)) {
         throw LanguageAlreadyExistsException
       }
       throw error

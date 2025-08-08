@@ -6,7 +6,7 @@ import {
   UpdatePermissionBodyType,
 } from 'src/routes/permission/permission.model'
 import { NotFoundRecordException } from 'src/shared/error'
-import { isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
+import { isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helpers'
 import { PermissionAlreadyExistsException } from 'src/routes/permission/permission.error'
 
 @Injectable()
@@ -33,7 +33,7 @@ export class PermissionService {
         body,
       })
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isUniqueConstraintPrismaError(error)) {
         throw PermissionAlreadyExistsException
       }
       throw error

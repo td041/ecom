@@ -15,7 +15,7 @@ import {
   SendOTPBodyType,
 } from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
-import { generateOTP, isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
+import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helpers'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import ms from 'ms'
@@ -101,7 +101,7 @@ export class AuthService {
       ])
       return user
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isUniqueConstraintPrismaError(error)) {
         throw new ConflictException('Email already exists')
       }
       throw error
