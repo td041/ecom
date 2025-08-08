@@ -10,12 +10,14 @@ import { AuthenticationGuard } from 'src/shared/guards/authentication.guard'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { EmailService } from 'src/shared/services/email.service'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 const sharedService = [
   PrismaService,
   HashingService,
   TokenService,
   SharedUserRepository,
+  SharedRoleRepository,
   EmailService,
   TwoFactorService,
 ]
@@ -31,7 +33,7 @@ const sharedService = [
       provide: APP_GUARD,
       useClass: AuthenticationGuard,
     },
-    // khai báo AuthenticationGuard là guard toàn cục để 
+    // khai báo AuthenticationGuard là guard toàn cục để
   ],
   exports: sharedService,
   imports: [JwtModule],

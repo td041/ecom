@@ -4,8 +4,8 @@ import { google } from 'googleapis'
 import { GoogleAuthStateType } from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
 import { AuthService } from 'src/routes/auth/auth.service'
-import { RolesService } from 'src/routes/auth/roles.service'
 import envConfig from 'src/shared/config'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -16,7 +16,7 @@ export class GoogleService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly hashingService: HashingService,
-    private readonly rolesService: RolesService,
+    private readonly sharedRoleRepository: SharedRoleRepository,
     private readonly authService: AuthService,
   ) {
     this.oauth2Client = new google.auth.OAuth2(
@@ -53,7 +53,7 @@ export class GoogleService {
       }
       //   2. Dùng code để lấy token
       const { tokens } = await this.oauth2Client.getToken(code)
-      console.log('tokens:', tokens);
+      console.log('tokens:', tokens)
       this.oauth2Client.setCredentials(tokens)
       //   3. Lấy thông tin người dùng từ token
       const oauth2 = google.oauth2({
@@ -67,7 +67,7 @@ export class GoogleService {
       let user = await this.authRepository.findUniqueUserIncludeRole({ email: data.email })
       //   nếu không có user tức là tài khoản google này là người mới không có dữ liệu trên hệ thống database của bạn cần phải tạo mới
       if (!user) {
-        const clientRoleId = await this.rolesService.getClientRoleId()
+        const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
         // console.log(clientRoleId)
         const hashedPassword = await this.hashingService.hash(uuidv4())
         user = await this.authRepository.createUserIncludeRole({

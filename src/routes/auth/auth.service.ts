@@ -15,7 +15,6 @@ import {
   SendOTPBodyType,
 } from 'src/routes/auth/auth.model'
 import { AuthRepository } from 'src/routes/auth/auth.repo'
-import { RolesService } from 'src/routes/auth/roles.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintError } from 'src/shared/helpers'
 import { SharedUserRepository } from 'src/shared/repositories/shared-user.repo'
 import { HashingService } from 'src/shared/services/hashing.service'
@@ -37,13 +36,14 @@ import {
   TOTPNotEnabledException,
 } from 'src/routes/auth/auth.error'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 @Injectable()
 export class AuthService {
   constructor(
     private readonly hashService: HashingService,
-    private readonly rolesService: RolesService,
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
+    private readonly sharedRoleRepository: SharedRoleRepository,
     private readonly emailService: EmailService,
     private readonly tokenService: TokenService,
     private readonly twoFactorService: TwoFactorService,
@@ -81,7 +81,7 @@ export class AuthService {
         type: TypeOfVerificationCode.REGISTER,
       })
 
-      const clientRoleId = await this.rolesService.getClientRoleId()
+      const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
       const hashedPassword = await this.hashService.hash(body.password)
       const [user] = await Promise.all([
         this.authRepository.createUser({

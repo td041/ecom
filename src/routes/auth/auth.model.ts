@@ -184,6 +184,5 @@ export type GetAuthorizationUrlType = z.infer<typeof GetAuthorizationUrlSchema>
 export type ForgotPasswordBodyType = z.infer<typeof ForgotPasswordBodySchema>
 export type LogoutBodyType = z.infer<typeof LogoutBodySchema>
 export type DeviceType = z.infer<typeof DeviceSchema>
-export type RoleType = z.infer<typeof RoleSchema>
 export type DisableTwoFactorBodyType = z.infer<typeof DisableTwoFactorBodySchema>
 export type TwoFactorSetupResType = z.infer<typeof TwoFactorSetupResSchema>
