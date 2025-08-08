@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { DeviceType, RefreshTokenType, RoleType, VerificationCodeType } from 'src/routes/auth/auth.model'
 import { TypeOfVerificationCodeType } from 'src/shared/constants/auth.constants'
 import { UserType } from 'src/shared/models/shared-user.model'
+import { WhereUniqueUserType } from 'src/shared/repositories/shared-user.repo'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
 @Injectable()
@@ -67,11 +68,9 @@ export class AuthRepository {
       data,
     })
   }
-  findUniqueUserIncludeRole(
-    uniqueObject: { email: string } | { id: number },
-  ): Promise<(UserType & { role: RoleType }) | null> {
+  findUniqueUserIncludeRole(where: WhereUniqueUserType): Promise<(UserType & { role: RoleType }) | null> {
     return this.PrismaService.user.findUnique({
-      where: uniqueObject,
+      where,
       include: {
         role: true,
       },
@@ -101,12 +100,6 @@ export class AuthRepository {
       where: {
         id: deviceId,
       },
-      data,
-    })
-  }
-  updateUser(where: { id: number } | { email: string }, data: Partial<Omit<UserType, 'id'>>): Promise<UserType> {
-    return this.PrismaService.user.update({
-      where,
       data,
     })
   }
