@@ -70,8 +70,11 @@ export class AuthRepository {
     })
   }
   findUniqueUserIncludeRole(where: WhereUniqueUserType): Promise<(UserType & { role: RoleType }) | null> {
-    return this.PrismaService.user.findUnique({
-      where,
+    return this.PrismaService.user.findFirst({
+      where: {
+        ...where,
+        deletedAt: null,
+      },
       include: {
         role: true,
       },
