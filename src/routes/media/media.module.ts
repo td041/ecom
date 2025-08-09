@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MulterModule } from '@nestjs/platform-express'
+import { existsSync, mkdirSync } from 'fs'
 import multer from 'multer'
 import path from 'path'
 import { MediaController } from 'src/routes/media/media.controller'
@@ -25,4 +26,10 @@ const storage = multer.diskStorage({
   controllers: [MediaController],
   providers: [],
 })
-export class MediaModule {}
+export class MediaModule {
+  constructor() {
+    if (!existsSync(UPLOAD_DIR)) {
+      mkdirSync(UPLOAD_DIR, { recursive: true })
+    }
+  }
+}
