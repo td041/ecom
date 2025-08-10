@@ -14,7 +14,7 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 export class BrandRepo {
   constructor(private prismaService: PrismaService) {}
 
-  async list(pagination: PaginationQueryType, languageId: string): Promise<GetBrandsResType> {
+  async list(pagination: PaginationQueryType, languageId?: string): Promise<GetBrandsResType> {
     const skip = (pagination.page - 1) * pagination.limit
     const take = pagination.limit
     const [totalItems, data] = await Promise.all([
@@ -48,7 +48,7 @@ export class BrandRepo {
     }
   }
 
-  findById(id: number, languageId: string): Promise<BrandIncludeTranslationType | null> {
+  findById(id: number, languageId?: string): Promise<BrandIncludeTranslationType | null> {
     return this.prismaService.brand.findUnique({
       where: {
         id,
