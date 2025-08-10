@@ -6,3 +6,7 @@ export const BrandTranslationAlreadyExistsException = new UnprocessableEntityExc
     message: 'Error.BrandTranslationAlreadyExists',
   },
 ])
+export const BrandTranslationNotFoundException = new UnprocessableEntityException({
+  message: 'Foreign key constraint failed',
+  constraint: 'brand_translation_languageId_fkey_or_brandId_fkey',
+})
