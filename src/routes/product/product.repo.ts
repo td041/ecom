@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable } from '@nestjs/common'
 import {
   CreateProductBodyType,
@@ -106,7 +107,7 @@ export class ProductRepo {
             data: skus.map((sku) => ({
               ...sku,
               createdById,
-            })),  
+            })),
           },
         },
       },
@@ -144,6 +145,102 @@ export class ProductRepo {
         },
       },
     })
+  }
+
+  async update({
+    id,
+    updatedById,
+    data,
+  }: {
+    id: number
+    updatedById: number
+    data: CreateProductBodyType
+  }): Promise<ProductType> {
+    const { skus: dataSkus, categories, ...productData } = data
+    // SKU đã tồn tại trong DB nhưng không có trong data payload thì sẽ bị xóa
+    // SKU đã tồn tại trong DB nhưng có trong data payload thì sẽ được cập nhật
+    // SKU không tồn tại trong DB nhưng có trong data payload thì sẽ được thêm mới
+
+    // 1. Lấy ra các SKU đã tồn tại trong DB
+    const existingSKUs = await this.prismaService.sKU.findMany({
+      where: {
+        productId: id,
+        deletedAt: null,
+      },
+    })
+
+    // 2. Tìm các SKU cần xóa
+    const skusToDelete = existingSKUs.filter((sku) => dataSkus.every((dataSku) => dataSku !== sku))
+    const skuIdsToDelete = skusToDelete.map((sku) => sku.id)
+
+    // 3. Gán id(mapping id) vào trong data payload
+    const skuWithId = dataSkus.map((dataSku) => {
+      const existingSKU = existingSKUs.find((existingSKU) => existingSKU.value === dataSku.value)
+      return {
+        ...dataSku,
+        id: existingSKU ? existingSKU.id : undefined,
+      }
+    })
+
+    // 4. Tìm các sku để cập nhật
+    const skusToUpdate = skuWithId.filter((sku) => sku.id !== null)
+    // 5. Tìm các sku để thêm mới
+    const skusToCreate = skuWithId
+      .filter((sku) => sku.id === null)
+      .map((sku) => {
+        const { id: skuId, ...data } = sku
+        return {
+          ...data,
+          productId: id,
+          createdById: updatedById,
+        }
+      })
+    const [product] = await this.prismaService.$transaction([
+      // Cập nhật Product
+      this.prismaService.product.update({
+        where: {
+          id,
+        },
+        data: {
+          ...productData,
+          updatedById,
+          categories: {
+            connect: categories.map((category) => ({
+              id: category,
+            })),
+          },
+        },
+      }),
+      // Xóa mềm các SKU không còn trong data payload
+      this.prismaService.sKU.updateMany({
+        where: {
+          id: {
+            in: skuIdsToDelete,
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+          deletedById: updatedById,
+        },
+      }),
+      // Cập nhật các SKU đã tồn tại
+      ...skusToUpdate.map((sku) =>
+        this.prismaService.sKU.update({
+          where: {
+            id: sku.id,
+          },
+          data: {
+            ...sku,
+            updatedById,
+          },
+        }),
+      ),
+      // Thêm mới các SKU mới
+      this.prismaService.sKU.createMany({
+        data: skusToCreate,
+      }),
+    ])
+    return product
   }
 
   async delete(
