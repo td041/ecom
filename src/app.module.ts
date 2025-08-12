@@ -22,6 +22,7 @@ import { CategoryModule } from 'src/routes/category/category.module'
 import { CategoryTranslationModule } from 'src/routes/category/category-translation/category-translation.module'
 import { ProductModule } from 'src/routes/product/product.module'
 import { ProductTranslationModule } from 'src/routes/product/product-translation/product-translation.module'
+import { ManageProductModule } from 'src/routes/product/manage-product.module'
 @Module({
   imports: [
     I18nModule.forRoot({
@@ -47,6 +48,7 @@ import { ProductTranslationModule } from 'src/routes/product/product-translation
     CategoryTranslationModule,
     ProductModule,
     ProductTranslationModule,
+    ManageProductModule,
   ],
   controllers: [AppController],
   providers: [
