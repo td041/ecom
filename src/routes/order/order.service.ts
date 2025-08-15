@@ -7,9 +7,19 @@ export class OrderService {
   constructor(private readonly orderRepo: OrderRepo) {}
 
   async list(userId: number, query: GetOrderListQueryType) {
-    return this.orderRepo.list(userId, query)
+    return await this.orderRepo.list(userId, query)
   }
   async create(userId: number, body: CreateOrderBodyType) {
-    return this.orderRepo.create(userId, body)
+    try {
+      return await this.orderRepo.create(userId, body)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  async cancel(userId: number, orderId: number) {
+    return await this.orderRepo.cancel(userId, orderId)
+  }
+  async detail(userId: number, orderId: number){
+    return await this.orderRepo.detail(userId, orderId)
   }
 }

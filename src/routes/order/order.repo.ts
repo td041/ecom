@@ -2,19 +2,22 @@ import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import {
   NotFoundCartItemException,
+  OrderNotFoundException,
   OutOfStockSKUException,
   ProductNotFoundException,
   SKUNotBelongToShopException,
 } from 'src/routes/order/order.error'
 import {
+  CancelOrderResType,
   CreateOrderBodyType,
   CreateOrderResType,
+  GetOrderDetailResType,
   GetOrderListQueryType,
   GetOrderListResType,
 } from 'src/routes/order/order.model'
 import { OrderStatus } from 'src/shared/constants/order.constants'
+import { isNotFoundPrismaError } from 'src/shared/helpers'
 import { PrismaService } from 'src/shared/services/prisma.service'
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class OrderRepo {
@@ -117,7 +120,6 @@ export class OrderRepo {
               status: OrderStatus.PENDING_PAYMENT,
               receiver: item.receiver,
               shopId: item.shopId,
-              paymentId: Number(uuidv4()),
               createdById: userId,
               items: {
                 create: item.cartItemIds.map((cartItemId) => {
@@ -161,6 +163,43 @@ export class OrderRepo {
     })
     return {
       data: order,
+    }
+  }
+  async detail(userId: number, orderId: number): Promise<GetOrderDetailResType> {
+    const order = await this.prismaService.order.findUnique({
+      where: {
+        id: orderId,
+        userId,
+        deletedAt: null,
+      },
+      include: {
+        items: true,
+      },
+    })
+    if (!order) {
+      throw OrderNotFoundException
+    }
+    return order
+  }
+  async cancel(userId: number, orderId: number): Promise<CancelOrderResType> {
+    try {
+      const order = await this.prismaService.order.update({
+        where: {
+          id: orderId,
+          userId,
+          deletedAt: null,
+        },
+        data: {
+          status: OrderStatus.CANCELLED,
+          updatedById: userId,
+        },
+      })
+      return order
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw OrderNotFoundException
+      }
+      throw error
     }
   }
 }
