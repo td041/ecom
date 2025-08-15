@@ -24,6 +24,7 @@ import { ProductModule } from 'src/routes/product/product.module'
 import { ProductTranslationModule } from 'src/routes/product/product-translation/product-translation.module'
 import { ManageProductModule } from 'src/routes/product/manage-product.module'
 import { CartModule } from 'src/routes/cart/cart.module'
+import { OrderModule } from 'src/routes/order/order.module'
 @Module({
   imports: [
     I18nModule.forRoot({
@@ -51,6 +52,7 @@ import { CartModule } from 'src/routes/cart/cart.module'
     ProductTranslationModule,
     ManageProductModule,
     CartModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [
