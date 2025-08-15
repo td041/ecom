@@ -1,7 +1,20 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
-import { GetOrderListQueryType, GetOrderListResType } from 'src/routes/order/order.model'
+import {
+  NotFoundCartItemException,
+  OutOfStockSKUException,
+  ProductNotFoundException,
+  SKUNotBelongToShopException,
+} from 'src/routes/order/order.error'
+import {
+  CreateOrderBodyType,
+  CreateOrderResType,
+  GetOrderListQueryType,
+  GetOrderListResType,
+} from 'src/routes/order/order.model'
+import { OrderStatus } from 'src/shared/constants/order.constants'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class OrderRepo {
@@ -35,6 +48,119 @@ export class OrderRepo {
       page,
       limit,
       totalPages: Math.ceil(totalItems / limit),
+    }
+  }
+  async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
+    const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
+    const cartItems = await this.prismaService.cartItem.findMany({
+      where: {
+        id: {
+          in: allBodyCartItemIds,
+        },
+        userId,
+      },
+      include: {
+        sku: {
+          include: {
+            product: {
+              include: {
+                productTranslations: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    // 1. Kiểm tra xem tất cả cartItemIds có tồn tại trong csdl hay không
+    if (cartItems.length !== allBodyCartItemIds.length) {
+      throw NotFoundCartItemException
+    }
+    // 2. Kiểm tra số lượng mua có lớn hơn số lượng tồn kho hay không
+    const isOutOfStock = cartItems.some((item) => item.quantity > item.sku.stock)
+    if (isOutOfStock) {
+      throw OutOfStockSKUException
+    }
+    // 3. Kiểm tra xem tất cả sản phẩm mua có sản phẩm nào bị xóa hay bị ẩn hay không
+    const isExistNotReadyProduct = cartItems.some(
+      (item) =>
+        item.sku.product.deletedAt !== null ||
+        item.sku.product.publishedAt === null ||
+        item.sku.product.publishedAt > new Date(),
+    )
+    if (isExistNotReadyProduct) {
+      throw ProductNotFoundException
+    }
+    // 4. Kiểm tra xem các sản phẩm skuId trong cartItem gửi lên có thuộc về ShopId gửi lên hay không
+    const cartItemMap = new Map<number, (typeof cartItems)[0]>()
+    // lưu dữ liệu cartItems vừa tìm từ trong DB vào đây để so sánh với dữ liệu mà client truyền lên
+
+    cartItems.forEach((item) => cartItemMap.set(item.id, item))
+    const isValidShop = body.every((item) => {
+      const bodyCartItemIds = item.cartItemIds
+      return bodyCartItemIds.every((id) => {
+        // nếu đã đến bước này thì cartItem luôn có giá trị
+        // vì chúng ta đã so sánh với allBodyCartItemIds.length ở trên rồi
+        const cartItem = cartItemMap.get(id)!
+        return (item.shopId = cartItem.sku.createdById)
+      })
+    })
+    if (!isValidShop) {
+      throw SKUNotBelongToShopException
+    }
+    // 5. Tạo order và xóa cartItem trong transaction để bảo đảm tính toàn vẹn dữ liệu
+    const order = await this.prismaService.$transaction(async (tx) => {
+      const orders = await Promise.all(
+        body.map((item) =>
+          tx.order.create({
+            data: {
+              userId,
+              status: OrderStatus.PENDING_PAYMENT,
+              receiver: item.receiver,
+              shopId: item.shopId,
+              paymentId: Number(uuidv4()),
+              createdById: userId,
+              items: {
+                create: item.cartItemIds.map((cartItemId) => {
+                  const cartItem = cartItemMap.get(cartItemId)!
+                  return {
+                    productName: cartItem.sku.product.name,
+                    skuPrice: cartItem?.sku.price,
+                    quantity: cartItem?.quantity,
+                    image: cartItem?.sku.image,
+                    skuValue: cartItem?.sku.value,
+                    productId: cartItem.sku.product.id,
+                    productTranslations: cartItem?.sku.product.productTranslations.map((translation) => ({
+                      id: translation.id,
+                      name: translation.name,
+                      description: translation.description,
+                      languageId: translation.languageId,
+                    })),
+                  }
+                }),
+              },
+              products: {
+                connect: item.cartItemIds.map((cartItemId) => {
+                  const cartItem = cartItemMap.get(cartItemId)!
+                  return {
+                    id: cartItem.id,
+                  }
+                }),
+              },
+            },
+          }),
+        ),
+      )
+      await tx.cartItem.deleteMany({
+        where: {
+          id: {
+            in: allBodyCartItemIds,
+          },
+        },
+      })
+      return orders
+    })
+    return {
+      data: order,
     }
   }
 }
