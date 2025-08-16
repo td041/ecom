@@ -16,6 +16,7 @@ import {
   GetOrderListResType,
 } from 'src/routes/order/order.model'
 import { OrderStatus } from 'src/shared/constants/order.constants'
+import { PaymentStatus } from 'src/shared/constants/payment.constant'
 import { isNotFoundPrismaError } from 'src/shared/helpers'
 import { PrismaService } from 'src/shared/services/prisma.service'
 
@@ -55,6 +56,7 @@ export class OrderRepo {
   }
   async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
+    // từ orders => cartItemIds => cartItems => cartItem
     const cartItems = await this.prismaService.cartItem.findMany({
       where: {
         id: {
@@ -111,12 +113,18 @@ export class OrderRepo {
       throw SKUNotBelongToShopException
     }
     // 5. Tạo order và xóa cartItem trong transaction để bảo đảm tính toàn vẹn dữ liệu
-    const order = await this.prismaService.$transaction(async (tx) => {
-      const orders = await Promise.all(
+    const orders = await this.prismaService.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          status: PaymentStatus.PENDING,
+        },
+      })
+      const orders$ = await Promise.all(
         body.map((item) =>
           tx.order.create({
             data: {
               userId,
+              paymentId: payment.id,
               status: OrderStatus.PENDING_PAYMENT,
               receiver: item.receiver,
               shopId: item.shopId,
@@ -152,17 +160,32 @@ export class OrderRepo {
           }),
         ),
       )
-      await tx.cartItem.deleteMany({
+      const cartItem$ = await tx.cartItem.deleteMany({
         where: {
           id: {
             in: allBodyCartItemIds,
           },
         },
       })
+      const sku$ = Promise.all(
+        cartItems.map((item) =>
+          tx.sKU.update({
+            where: {
+              id: item.sku.id,
+            },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          }),
+        ),
+      )
+      const [orders] = await Promise.all([orders$, cartItem$, sku$])
       return orders
     })
     return {
-      data: order,
+      data: orders,
     }
   }
   async detail(userId: number, orderId: number): Promise<GetOrderDetailResType> {

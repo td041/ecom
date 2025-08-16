@@ -7,6 +7,7 @@ import {
   CreateOrderResDTO,
   GetOrderDetailResDTO,
   GetOrderListQueryDTO,
+  GetOrderListResDTO,
   GetOrderParamsDTO,
 } from 'src/routes/order/order.dto'
 
@@ -15,7 +16,7 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get()
-  @ZodSerializerDto(GetOrderListQueryDTO)
+  @ZodSerializerDto(GetOrderListResDTO)
   getOrder(@ActiveUser('userId') userId: number, @Query() query: GetOrderListQueryDTO) {
     return this.orderService.list(userId, query)
   }
