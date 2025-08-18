@@ -27,7 +27,7 @@ export class OrderController {
     return this.orderService.create(userId, body)
   }
 
-  @Get()
+  @Get(':orderId')
   @ZodSerializerDto(GetOrderDetailResDTO)
   detail(@ActiveUser('userId') userId: number, @Param() param: GetOrderParamsDTO) {
     return this.orderService.detail(userId, param.orderId)

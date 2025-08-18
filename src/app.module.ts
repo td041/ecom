@@ -27,6 +27,7 @@ import { CartModule } from 'src/routes/cart/cart.module'
 import { OrderModule } from 'src/routes/order/order.module'
 import { PaymentModule } from 'src/routes/payment/payment.module'
 import { BullModule } from '@nestjs/bullmq'
+import { PaymentConsumer } from './queues/payment.consumer'
 @Module({
   imports: [
     BullModule.forRoot({
@@ -80,6 +81,7 @@ import { BullModule } from '@nestjs/bullmq'
       provide: APP_FILTER,
       useClass: CatchEverythingFilter,
     },
+    PaymentConsumer,
   ],
 })
 export class AppModule {}

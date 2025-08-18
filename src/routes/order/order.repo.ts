@@ -54,7 +54,10 @@ export class OrderRepo {
       totalPages: Math.ceil(totalItems / limit),
     }
   }
-  async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
+  async create(
+    userId: number,
+    body: CreateOrderBodyType,
+  ): Promise<{ paymentId: number; orders: CreateOrderResType['data'] }> {
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
     // từ orders => cartItemIds => cartItems => cartItem
     const cartItems = await this.prismaService.cartItem.findMany({
@@ -113,7 +116,7 @@ export class OrderRepo {
       throw SKUNotBelongToShopException
     }
     // 5. Tạo order và xóa cartItem trong transaction để bảo đảm tính toàn vẹn dữ liệu
-    const orders = await this.prismaService.$transaction(async (tx) => {
+    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -152,7 +155,7 @@ export class OrderRepo {
                 connect: item.cartItemIds.map((cartItemId) => {
                   const cartItem = cartItemMap.get(cartItemId)!
                   return {
-                    id: cartItem.id,
+                    id: cartItem.sku.product.id,
                   }
                 }),
               },
@@ -182,13 +185,15 @@ export class OrderRepo {
         ),
       )
       const [orders] = await Promise.all([orders$, cartItem$, sku$])
-      return orders
+      return [payment.id, orders]
     })
     return {
-      data: orders,
+      paymentId,
+      orders,
     }
   }
   async detail(userId: number, orderId: number): Promise<GetOrderDetailResType> {
+  console.log('Fetching order detail for user:', userId, 'orderId:', orderId)
     const order = await this.prismaService.order.findUnique({
       where: {
         id: orderId,
