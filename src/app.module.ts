@@ -28,13 +28,12 @@ import { OrderModule } from 'src/routes/order/order.module'
 import { PaymentModule } from 'src/routes/payment/payment.module'
 import { BullModule } from '@nestjs/bullmq'
 import { PaymentConsumer } from './queues/payment.consumer'
+import envConfig from './shared/config'
 @Module({
   imports: [
     BullModule.forRoot({
-      // connect to Redis
       connection: {
-        host: 'localhost',
-        port: 6379,
+        url: envConfig.REDIS_URL,
       },
     }),
     I18nModule.forRoot({
