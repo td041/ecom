@@ -19,10 +19,14 @@ import { OrderStatus } from 'src/shared/constants/order.constants'
 import { PaymentStatus } from 'src/shared/constants/payment.constant'
 import { isNotFoundPrismaError } from 'src/shared/helpers'
 import { PrismaService } from 'src/shared/services/prisma.service'
+import { OrderProducer } from './order.producer'
 
 @Injectable()
 export class OrderRepo {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly orderProducer: OrderProducer,
+  ) {}
   async list(userId: number, query: GetOrderListQueryType): Promise<GetOrderListResType> {
     const { limit, page, status } = query
     const skip = (page - 1) * limit
@@ -54,10 +58,7 @@ export class OrderRepo {
       totalPages: Math.ceil(totalItems / limit),
     }
   }
-  async create(
-    userId: number,
-    body: CreateOrderBodyType,
-  ): Promise<{ paymentId: number; orders: CreateOrderResType['data'] }> {
+  async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
     // từ orders => cartItemIds => cartItems => cartItem
     const cartItems = await this.prismaService.cartItem.findMany({
@@ -116,7 +117,8 @@ export class OrderRepo {
       throw SKUNotBelongToShopException
     }
     // 5. Tạo order và xóa cartItem trong transaction để bảo đảm tính toàn vẹn dữ liệu
-    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
+    // transaction for rollback if failed
+    const [orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -184,16 +186,16 @@ export class OrderRepo {
           }),
         ),
       )
-      const [orders] = await Promise.all([orders$, cartItem$, sku$])
-      return [payment.id, orders]
+      const addCancelPaymentJob$ = this.orderProducer.addCancelPaymentJob(payment.id)
+      const [orders] = await Promise.all([orders$, cartItem$, sku$, addCancelPaymentJob$])
+      return [orders]
     })
     return {
-      paymentId,
-      orders,
+      data: orders,
     }
   }
   async detail(userId: number, orderId: number): Promise<GetOrderDetailResType> {
-  console.log('Fetching order detail for user:', userId, 'orderId:', orderId)
+    console.log('Fetching order detail for user:', userId, 'orderId:', orderId)
     const order = await this.prismaService.order.findUnique({
       where: {
         id: orderId,
