@@ -29,6 +29,7 @@ import { PaymentModule } from 'src/routes/payment/payment.module'
 import { BullModule } from '@nestjs/bullmq'
 import { PaymentConsumer } from './queues/payment.consumer'
 import envConfig from './shared/config'
+import { WebSocketModule } from './websockets/websocket.module'
 @Module({
   imports: [
     BullModule.forRoot({
@@ -63,6 +64,7 @@ import envConfig from './shared/config'
     CartModule,
     OrderModule,
     PaymentModule,
+    WebSocketModule,
   ],
   controllers: [AppController],
   providers: [
