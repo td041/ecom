@@ -1,6 +1,7 @@
 import { INestApplicationContext } from '@nestjs/common'
 import { IoAdapter } from '@nestjs/platform-socket.io'
 import { Server, ServerOptions, Socket } from 'socket.io'
+import { generateRoomUserId } from 'src/shared/helpers'
 import { SharedWebSocketRepository } from 'src/shared/repositories/shared-websocket.repo'
 import { TokenService } from 'src/shared/services/token.service'
 
@@ -39,14 +40,15 @@ export class WebSocketAdapter extends IoAdapter {
     const accessToken = authorization.split(' ')[1]
     try {
       const { userId } = await this.tokenService.verifyAccessToken(accessToken)
-      await this.sharedWebsocketRepositoy.create({
-        id: socket.id,
-        userId,
-      })
-      console.log(`Client connected: ${socket.id}`)
-      socket.on('disconnect', async () => {
-        await this.sharedWebsocketRepositoy.delete(socket.id).catch(() => {})
-      })
+      await socket.join(generateRoomUserId(userId))
+      // await this.sharedWebsocketRepositoy.create({
+      //   id: socket.id,
+      //   userId,
+      // })
+      // console.log(`Client connected: ${socket.id}`)
+      // socket.on('disconnect', async () => {
+      //   await this.sharedWebsocketRepositoy.delete(socket.id).catch(() => {})
+      // })
     } catch (error) {
       next(error)
     }
