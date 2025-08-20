@@ -58,7 +58,10 @@ export class OrderRepo {
       totalPages: Math.ceil(totalItems / limit),
     }
   }
-  async create(userId: number, body: CreateOrderBodyType): Promise<CreateOrderResType> {
+  async create(
+    userId: number,
+    body: CreateOrderBodyType,
+  ): Promise<{ paymentId: number; orders: CreateOrderResType['orders'] }> {
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
     // từ orders => cartItemIds => cartItems => cartItem
     const cartItems = await this.prismaService.cartItem.findMany({
@@ -118,7 +121,7 @@ export class OrderRepo {
     }
     // 5. Tạo order và xóa cartItem trong transaction để bảo đảm tính toàn vẹn dữ liệu
     // transaction for rollback if failed
-    const [orders] = await this.prismaService.$transaction(async (tx) => {
+    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -188,10 +191,11 @@ export class OrderRepo {
       )
       const addCancelPaymentJob$ = this.orderProducer.addCancelPaymentJob(payment.id)
       const [orders] = await Promise.all([orders$, cartItem$, sku$, addCancelPaymentJob$])
-      return [orders]
+      return [payment.id, orders]
     })
     return {
-      data: orders,
+      paymentId,
+      orders,
     }
   }
   async detail(userId: number, orderId: number): Promise<GetOrderDetailResType> {

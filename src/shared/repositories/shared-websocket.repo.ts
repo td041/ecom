@@ -12,10 +12,17 @@ export class SharedWebSocketRepository {
       },
     })
   }
+  findMany(userId) {
+    return this.prismaService.websocket.findMany({
+      where: {
+        userId,
+      },
+    })
+  }
   delete(id: string) {
     return this.prismaService.websocket.delete({
       where: {
-        id: id,
+        id,
       },
     })
   }
